@@ -1,0 +1,25 @@
+import Navbar from "@/components/Navbar";
+import PriceTicker from "@/components/PriceTicker";
+import Hero from "@/components/Hero";
+import TradingMockup from "@/components/TradingMockup";
+import Features from "@/components/Features";
+import Stats from "@/components/Stats";
+import CTA from "@/components/CTA";
+import Footer from "@/components/Footer";
+
+export default function Home() {
+  return (
+    <>
+      <Navbar />
+      <PriceTicker />
+      <main>
+        <Hero />
+        <TradingMockup />
+        <Features />
+        <Stats />
+        <CTA />
+      </main>
+      <Footer />
+    </>
+  );
+}
