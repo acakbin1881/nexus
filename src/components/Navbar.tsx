@@ -38,9 +38,6 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <button className="border-2 border-[#00F0FF] bg-transparent hover:bg-[#00F0FF]/10 px-6 py-2.5 text-[#00F0FF] font-semibold tracking-wide text-sm hover-glow transition-all">
-            Connect Wallet
-          </button>
           <Link
             href="/trade"
             className="bg-[#00F0FF] text-black px-6 py-2.5 font-bold tracking-wide text-sm hover:bg-[#00D9FF] transition-all hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] inline-block"
@@ -96,9 +93,6 @@ export default function Navbar() {
                 </a>
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-neutral-800">
-                <button className="border-2 border-[#00F0FF] bg-transparent px-6 py-2.5 text-[#00F0FF] font-semibold tracking-wide text-sm">
-                  Connect Wallet
-                </button>
                 <Link
                   href="/trade"
                   className="bg-[#00F0FF] text-black px-6 py-2.5 font-bold tracking-wide text-sm text-center"
