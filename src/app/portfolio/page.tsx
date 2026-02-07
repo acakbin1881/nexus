@@ -2,16 +2,14 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   Settings,
-  Wallet,
-  Plus,
   ArrowRightLeft,
   ArrowUpRight,
   ArrowDownLeft,
   TrendingUp,
-  ChevronDown,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -24,7 +22,21 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import ConnectWalletButton from "@/components/ConnectWalletButton";
+
+const ConnectWalletButton = dynamic(
+  () => import("@/components/ConnectWalletButton"),
+  { ssr: false },
+);
+
+const OnChainPortfolio = dynamic(
+  () => import("@/components/OnChainPortfolio"),
+  { ssr: false },
+);
+
+const ConnectedWallets = dynamic(
+  () => import("@/components/OnChainPortfolio").then((mod) => mod.ConnectedWallets),
+  { ssr: false },
+);
 
 /* ================================================================
    DATA
@@ -547,25 +559,8 @@ export default function PortfolioPage() {
                 </div>
               </div>
 
-              {/* Connected Wallets */}
-              <div className="flex items-center gap-2">
-                {WALLETS.map((w) => (
-                  <div
-                    key={w.address}
-                    className="flex items-center gap-2 px-3 py-2 bg-zinc-800/60 border border-zinc-700/50 rounded-lg"
-                  >
-                    <Wallet size={12} className="text-zinc-500" />
-                    <div>
-                      <div className="text-[11px] text-zinc-300 font-medium">{w.label}</div>
-                      <div className="text-[10px] font-mono text-zinc-600">{w.address}</div>
-                    </div>
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 ml-1" />
-                  </div>
-                ))}
-                <button className="flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-zinc-700 text-zinc-600 hover:border-zinc-500 hover:text-zinc-400 transition-colors">
-                  <Plus size={14} />
-                </button>
-              </div>
+              {/* Connected Wallets — only shown when dWallet count > 0 */}
+              <ConnectedWallets />
             </div>
           </div>
 
@@ -587,6 +582,9 @@ export default function PortfolioPage() {
           </div>
           <AssetTable />
         </div>
+
+        {/* dWallets + NFTs (rendered as separate component to defer hook calls) */}
+        <OnChainPortfolio />
 
         {/* Bottom row: Chart + Activity */}
         <div className="flex flex-col lg:flex-row gap-6">
