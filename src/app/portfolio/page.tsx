@@ -6,10 +6,8 @@ import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   Settings,
-<<<<<<< HEAD
+  Wallet,
   Plus,
-=======
->>>>>>> 2dd58ea (dWallet creation is done)
   ArrowRightLeft,
   ArrowUpRight,
   ArrowDownLeft,
