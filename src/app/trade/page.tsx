@@ -13,6 +13,7 @@ import {
   Percent,
 } from "lucide-react";
 import { TradingViewWidget } from "@/components/tradingview-widget";
+import ConnectWalletButton from "@/components/ConnectWalletButton";
 
 /* ================================================================
    DATA
@@ -517,7 +518,8 @@ export default function TradePage() {
             ))}
           </div>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            <ConnectWalletButton />
             <Settings size={16} className="text-zinc-500 hover:text-zinc-300 cursor-pointer transition-colors" />
           </div>
         </div>

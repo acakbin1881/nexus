@@ -26,6 +26,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import ConnectWalletButton from "@/components/ConnectWalletButton";
 
 /* ================================================================
    DATA
@@ -587,6 +588,7 @@ export default function PortfolioPage() {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
+            <ConnectWalletButton />
             <button
               onClick={() => setHideBalances(!hideBalances)}
               className="text-zinc-500 hover:text-zinc-300 cursor-pointer transition-colors"
