@@ -5,15 +5,17 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Settings,
-  Wallet,
   Plus,
   ArrowRightLeft,
   ArrowUpRight,
   ArrowDownLeft,
   TrendingUp,
-  ChevronDown,
   Eye,
   EyeOff,
+  RefreshCw,
+  Globe,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -121,8 +123,8 @@ const ACTIVITIES = [
 ];
 
 const WALLETS = [
-  { address: "7xKX...9mPq", chain: "solana", label: "Main Solana" },
-  { address: "0x3F...8a2D", chain: "evm", label: "EVM Wallet" },
+  { address: "7xKXm9...9mPq", fullAddress: "7xKXm9abc123def456ghij789mPq", chain: "solana" as const, label: "Solana", balance: 7234.5 },
+  { address: "0x3Fa8...2D4e", fullAddress: "0x3Fa8bc91def234567890abcde2D4e", chain: "evm" as const, label: "EVM", balance: 5606.0 },
 ];
 
 const NET_WORTH = 12840.5;
@@ -174,25 +176,82 @@ function ChainIcon({ chainId, className = "h-4 w-4" }: { chainId: string; classN
 }
 
 /* ================================================================
-   PERFORMANCE CHART
+   SMART WALLET BADGE
+   ================================================================ */
+
+function WalletBadge({ wallet }: { wallet: typeof WALLETS[number] }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(wallet.fullAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-full">
+      <ChainIcon
+        chainId={wallet.chain === "solana" ? "solana" : "ethereum"}
+        className="h-4 w-4"
+      />
+      <span className="text-sm font-mono text-zinc-300">{wallet.address}</span>
+      <span className="text-sm font-mono text-zinc-500">
+        ${wallet.balance.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+      </span>
+      <button
+        onClick={handleCopy}
+        className="text-zinc-600 hover:text-zinc-300 transition-colors"
+        aria-label="Copy address"
+      >
+        {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+      </button>
+    </div>
+  );
+}
+
+/* ================================================================
+   PERFORMANCE CHART (with segmented control)
    ================================================================ */
 
 function PerformanceChart() {
   const [timeframe, setTimeframe] = useState("7D");
+  const [chartMode, setChartMode] = useState<"value" | "pnl">("value");
   const timeframes = ["24H", "7D", "1M", "3M", "ALL"];
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-lg overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/50">
-        <span className="text-[12px] text-zinc-400 font-medium uppercase tracking-wide">
-          Performance
-        </span>
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/50">
+        {/* Segmented Control: Portfolio Value / Daily PnL */}
+        <div className="flex items-center gap-0.5 bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-1">
+          <button
+            onClick={() => setChartMode("value")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              chartMode === "value"
+                ? "bg-zinc-700 text-zinc-100 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            Portfolio Value
+          </button>
+          <button
+            onClick={() => setChartMode("pnl")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              chartMode === "pnl"
+                ? "bg-zinc-700 text-zinc-100 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            Daily PnL
+          </button>
+        </div>
+
+        {/* Timeframe Selector */}
         <div className="flex gap-1">
           {timeframes.map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
-              className={`px-2.5 py-1 rounded text-[10px] font-mono transition-colors ${
+              className={`px-2.5 py-1 rounded text-sm font-mono transition-colors ${
                 timeframe === tf
                   ? "bg-zinc-800 text-zinc-100"
                   : "text-zinc-500 hover:text-zinc-300"
@@ -203,7 +262,7 @@ function PerformanceChart() {
           ))}
         </div>
       </div>
-      <div className="h-[280px] px-2 py-4">
+      <div className="flex-1 min-h-[280px] px-2 py-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={PERFORMANCE_DATA}>
             <defs>
@@ -221,15 +280,15 @@ function PerformanceChart() {
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#71717a", fontSize: 11 }}
+              tick={{ fill: "#71717a", fontSize: 12 }}
             />
             <YAxis
               domain={["dataMin - 100", "dataMax + 100"]}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#71717a", fontSize: 11 }}
+              tick={{ fill: "#71717a", fontSize: 12 }}
               tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`}
-              width={50}
+              width={55}
             />
             <Tooltip
               contentStyle={{
@@ -237,12 +296,12 @@ function PerformanceChart() {
                 border: "1px solid #3f3f46",
                 borderRadius: "12px",
                 color: "#e4e4e7",
-                fontSize: "12px",
+                fontSize: "13px",
                 fontFamily: "var(--font-geist-mono), monospace",
               }}
               formatter={(value: number | undefined) => [
                 value != null ? `$${value.toLocaleString()}` : "$0",
-                "Value",
+                chartMode === "value" ? "Portfolio Value" : "Daily PnL",
               ]}
               labelStyle={{ color: "#71717a" }}
             />
@@ -288,7 +347,7 @@ function ActivityPanel() {
   }, [tab]);
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-lg overflow-hidden">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
       {/* Tabs */}
       <div className="flex items-center gap-0 border-b border-zinc-800/50 px-2">
         {[
@@ -299,7 +358,7 @@ function ActivityPanel() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-3 text-[12px] tracking-wide border-b-2 transition-colors ${
+            className={`px-4 py-3 text-sm tracking-wide border-b-2 transition-colors ${
               tab === t.key
                 ? "border-indigo-500 text-zinc-100 font-medium"
                 : "border-transparent text-zinc-500 hover:text-zinc-300"
@@ -311,7 +370,7 @@ function ActivityPanel() {
       </div>
 
       {/* List */}
-      <div className="divide-y divide-zinc-800/30">
+      <div className="flex-1 divide-y divide-zinc-800/30 overflow-y-auto">
         {filtered.map((activity) => {
           const Icon = activityIcons[activity.type] ?? ArrowRightLeft;
           const colorClass = activityColors[activity.type] ?? "text-zinc-400 bg-zinc-800";
@@ -320,20 +379,20 @@ function ActivityPanel() {
               key={activity.id}
               className="flex items-center gap-3 px-5 py-3.5 hover:bg-zinc-800/20 transition-colors cursor-pointer"
             >
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
-                <Icon size={14} />
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
+                <Icon size={16} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] text-zinc-200 truncate">{activity.description}</p>
-                <p className="text-[10px] text-zinc-600">
+                <p className="text-sm text-zinc-200 truncate">{activity.description}</p>
+                <p className="text-sm text-zinc-600">
                   {activity.fromChain} → {activity.toChain}
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-[12px] font-mono text-zinc-300">
+                <p className="text-sm font-mono text-zinc-300">
                   ${activity.value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[10px] text-zinc-600">{activity.timestamp}</p>
+                <p className="text-sm text-zinc-600">{activity.timestamp}</p>
               </div>
             </div>
           );
@@ -344,32 +403,33 @@ function ActivityPanel() {
 }
 
 /* ================================================================
-   ASSET TABLE
+   ASSET TABLE (with Actions column)
    ================================================================ */
 
 function AssetTable() {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[11px] font-mono">
+      <table className="w-full text-sm font-mono">
         <thead>
           <tr className="text-zinc-500 text-left">
-            <th className="pl-5 py-2.5 font-medium">Asset</th>
-            <th className="py-2.5 font-medium">Chain</th>
-            <th className="py-2.5 font-medium text-right">Balance</th>
-            <th className="py-2.5 font-medium text-right">Value</th>
-            <th className="py-2.5 font-medium text-right pr-5">24h</th>
+            <th className="pl-6 py-3 font-medium">Asset</th>
+            <th className="py-3 font-medium">Chain</th>
+            <th className="py-3 font-medium text-right">Balance</th>
+            <th className="py-3 font-medium text-right">Value</th>
+            <th className="py-3 font-medium text-right">24h</th>
+            <th className="py-3 font-medium text-right pr-6">Actions</th>
           </tr>
         </thead>
         <tbody>
           {ASSETS.map((asset) => (
             <tr
               key={`${asset.symbol}-${asset.chain.id}`}
-              className="border-t border-zinc-800/30 hover:bg-zinc-800/20 transition-colors cursor-pointer"
+              className="border-t border-zinc-800/30 hover:bg-zinc-800/20 transition-colors"
             >
-              <td className="pl-5 py-3">
-                <div className="flex items-center gap-2.5">
+              <td className="pl-6 py-4">
+                <div className="flex items-center gap-3">
                   <div
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
                     style={{
                       backgroundColor: asset.chain.color + "18",
                       color: asset.chain.color,
@@ -378,26 +438,44 @@ function AssetTable() {
                     {asset.symbol[0]}
                   </div>
                   <div>
-                    <span className="text-zinc-100 font-semibold text-[12px]">{asset.symbol}</span>
-                    <span className="text-zinc-500 ml-1.5">{asset.name}</span>
+                    <span className="text-zinc-100 font-semibold">{asset.symbol}</span>
+                    <span className="text-zinc-500 ml-2">{asset.name}</span>
                   </div>
                 </div>
               </td>
-              <td className="py-3">
-                <div className="flex items-center gap-1.5">
-                  <ChainIcon chainId={asset.chain.id} className="h-3.5 w-3.5" />
+              <td className="py-4">
+                <div className="flex items-center gap-2">
+                  <ChainIcon chainId={asset.chain.id} className="h-4 w-4" />
                   <span className="text-zinc-400">{asset.chain.name}</span>
                 </div>
               </td>
-              <td className="py-3 text-right text-zinc-300">
+              <td className="py-4 text-right text-zinc-300">
                 <div>{asset.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</div>
-                <div className="text-[10px] text-zinc-600">${asset.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                <div className="text-zinc-600">${asset.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
               </td>
-              <td className="py-3 text-right text-zinc-100 font-semibold">
+              <td className="py-4 text-right text-zinc-100 font-semibold">
                 ${asset.value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </td>
-              <td className={`py-3 text-right pr-5 font-semibold ${asset.change24h >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <td className={`py-4 text-right font-semibold ${asset.change24h >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 {asset.change24h >= 0 ? "+" : ""}{asset.change24h.toFixed(2)}%
+              </td>
+              <td className="py-4 text-right pr-6">
+                <div className="flex items-center justify-end gap-1.5">
+                  <button
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                    aria-label={`Swap ${asset.symbol}`}
+                  >
+                    <RefreshCw size={14} />
+                    <span className="text-sm">Swap</span>
+                  </button>
+                  <button
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                    aria-label={`Bridge ${asset.symbol}`}
+                  >
+                    <Globe size={14} />
+                    <span className="text-sm">Bridge</span>
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -429,7 +507,7 @@ function AllocationPanel() {
       </div>
 
       {/* Legend */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {ASSETS.map((asset) => (
           <div
             key={`${asset.symbol}-${asset.chain.id}`}
@@ -437,15 +515,15 @@ function AllocationPanel() {
           >
             <div className="flex items-center gap-2">
               <div
-                className="h-2.5 w-2.5 rounded-full"
+                className="h-3 w-3 rounded-full"
                 style={{ backgroundColor: ALLOCATION_COLORS[asset.symbol] ?? "#71717a" }}
               />
-              <span className="text-[12px] text-zinc-300">{asset.symbol}</span>
-              <span className="text-[10px] text-zinc-600">{asset.chain.name}</span>
+              <span className="text-sm text-zinc-300">{asset.symbol}</span>
+              <span className="text-sm text-zinc-600">{asset.chain.name}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[12px] font-mono text-zinc-400">{asset.allocation.toFixed(1)}%</span>
-              <span className="text-[12px] font-mono text-zinc-300">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-mono text-zinc-400">{asset.allocation.toFixed(1)}%</span>
+              <span className="text-sm font-mono text-zinc-300">
                 ${asset.value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -465,7 +543,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 font-[family-name:var(--font-geist-sans)]">
-      {/* ── TOP NAV ── (same template as trade page) */}
+      {/* ── TOP NAV ── */}
       <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/50">
         <div className="max-w-[1600px] mx-auto px-6 sm:px-8 h-14 flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors mr-1">
@@ -479,11 +557,11 @@ export default function PortfolioPage() {
           <div className="flex items-center gap-0.5 bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-1 mr-2">
             <Link
               href="/trade"
-              className="px-3 py-1.5 text-[12px] font-medium tracking-wide rounded-md text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium tracking-wide rounded-md text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               Trade
             </Link>
-            <div className="px-3 py-1.5 text-[12px] font-medium tracking-wide rounded-md bg-zinc-700 text-zinc-100 shadow-sm">
+            <div className="px-3 py-1.5 text-sm font-medium tracking-wide rounded-md bg-zinc-700 text-zinc-100 shadow-sm">
               Portfolio
             </div>
           </div>
@@ -500,8 +578,8 @@ export default function PortfolioPage() {
               { label: "Wallets", value: `${WALLETS.length}`, color: "text-zinc-300" },
             ].map((s) => (
               <div key={s.label}>
-                <div className="text-[10px] text-zinc-500 tracking-wide mb-0.5">{s.label}</div>
-                <div className={`text-[12px] font-mono font-medium ${s.color}`}>
+                <div className="text-sm text-zinc-500 tracking-wide mb-0.5">{s.label}</div>
+                <div className={`text-sm font-mono font-medium ${s.color}`}>
                   {hideBalances ? "••••" : s.value}
                 </div>
               </div>
@@ -521,46 +599,36 @@ export default function PortfolioPage() {
       </header>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="max-w-[1600px] mx-auto px-6 sm:px-8 py-6 space-y-6">
+      <main className="max-w-[1600px] mx-auto px-6 sm:px-8 py-6 space-y-5">
         {/* Top row: Net Worth Hero + Allocation */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-5">
           {/* Net Worth Card */}
           <div className="flex-1 lg:w-[65%] bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-lg">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               {/* Big number */}
               <div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">Net Worth</div>
+                <div className="text-sm text-zinc-500 uppercase tracking-wide mb-1">Net Worth</div>
                 <div className="text-3xl sm:text-4xl font-mono font-bold text-zinc-100">
                   {hideBalances ? "••••••••" : `$${NET_WORTH.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <TrendingUp size={14} className="text-emerald-400" />
-                  <span className="text-[13px] font-mono text-emerald-400">
+                  <span className="text-sm font-mono text-emerald-400">
                     +${CHANGE_24H.toFixed(2)}
                   </span>
-                  <span className="text-[11px] font-mono bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">
+                  <span className="text-sm font-mono bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">
                     +{CHANGE_24H_PERCENT.toFixed(2)}%
                   </span>
-                  <span className="text-[10px] text-zinc-600">24h</span>
+                  <span className="text-sm text-zinc-600">24h</span>
                 </div>
               </div>
 
-              {/* Connected Wallets */}
-              <div className="flex items-center gap-2">
+              {/* Smart Wallet Badges */}
+              <div className="flex items-center gap-2 flex-wrap">
                 {WALLETS.map((w) => (
-                  <div
-                    key={w.address}
-                    className="flex items-center gap-2 px-3 py-2 bg-zinc-800/60 border border-zinc-700/50 rounded-lg"
-                  >
-                    <Wallet size={12} className="text-zinc-500" />
-                    <div>
-                      <div className="text-[11px] text-zinc-300 font-medium">{w.label}</div>
-                      <div className="text-[10px] font-mono text-zinc-600">{w.address}</div>
-                    </div>
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 ml-1" />
-                  </div>
+                  <WalletBadge key={w.address} wallet={w} />
                 ))}
-                <button className="flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-zinc-700 text-zinc-600 hover:border-zinc-500 hover:text-zinc-400 transition-colors">
+                <button className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-zinc-700 text-zinc-600 hover:border-zinc-500 hover:text-zinc-400 transition-colors">
                   <Plus size={14} />
                 </button>
               </div>
@@ -569,8 +637,8 @@ export default function PortfolioPage() {
 
           {/* Allocation Card */}
           <div className="lg:w-[35%] min-w-[300px]">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-lg">
-              <div className="text-[12px] text-zinc-400 font-medium uppercase tracking-wide mb-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-lg h-full">
+              <div className="text-sm text-zinc-400 font-medium uppercase tracking-wide mb-4">
                 Allocation
               </div>
               <AllocationPanel />
@@ -580,14 +648,14 @@ export default function PortfolioPage() {
 
         {/* Middle row: Assets */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
-          <div className="px-5 py-3 border-b border-zinc-800/50">
-            <span className="text-[12px] text-zinc-400 font-medium uppercase tracking-wide">Assets</span>
+          <div className="px-6 py-3.5 border-b border-zinc-800/50">
+            <span className="text-sm text-zinc-400 font-medium uppercase tracking-wide">Assets</span>
           </div>
           <AssetTable />
         </div>
 
         {/* Bottom row: Chart + Activity */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-5">
           {/* Performance Chart */}
           <div className="flex-1 lg:w-[60%]">
             <PerformanceChart />
