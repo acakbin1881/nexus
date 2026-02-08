@@ -16,18 +16,11 @@ import { SuiJsonRpcClient } from "@mysten/sui/jsonRpc";
 import { Transaction } from "@mysten/sui/transactions";
 import type { TransactionObjectArgument } from "@mysten/sui/transactions";
 
-/**
- * Constant salt vector mixed with the user's password to derive the rootSeedKey.
- * This provides domain separation so the same password produces different keys
- * across different applications.
- */
-const NEXUS_SALT = new Uint8Array([
-  78, 69, 88, 85, 83, 95, 68, 87, 65, 76, 76, 69, 84, 95, 83, 65,
-  76, 84, 95, 86, 49, 95, 50, 48, 50, 54, 95, 48, 50, 95, 48, 55,
-]); // "NEXUS_DWALLET_SALT_V1_2026_02_07"
+const NEXUS_SALT = new TextEncoder().encode(
+  process.env.NEXT_PUBLIC_NEXUS_SALT!,
+);
 
-const TESTNET_IKA_COIN_TYPE =
-  "0x1f26bb2f711ff82dcda4d02c77d5123089cb7f8418751474b9fb744ce031526a::ika::IKA";
+const TESTNET_IKA_COIN_TYPE = process.env.NEXT_PUBLIC_TESTNET_IKA_COIN_TYPE!;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -294,14 +287,14 @@ export async function createDWallet({
       "No IKA coins found. You need IKA tokens to create a dWallet.",
     );
   }
-  if (!rawUserSuiCoins[1]) {
+  if (!rawUserSuiCoins[0]) {
     throw new Error(
       "Insufficient SUI coins. You need at least 2 SUI coin objects for gas.",
     );
   }
 
   const userIkaCoin = tx.object(rawUserIkaCoins[0].coinObjectId);
-  const userSuiCoin = tx.object(rawUserSuiCoins[1].coinObjectId);
+  const userSuiCoin = tx.object(rawUserSuiCoins[0].coinObjectId);
 
   // 6. Session + encryption key registration + DKG prep
   status("Registering encryption key on-chain...");
@@ -323,7 +316,8 @@ export async function createDWallet({
   const userPublicOutput = Array.from(
     new Uint8Array((dkgRequestInput as any).userPublicOutput),
   );
-
+  const feeCoin = tx.splitCoins(tx.gas, [100_000_000]);
+  // const fee_ika_coin = tx.splitCoins(userIkaCoin, [1_000_000]);
   // 7. Request DKG
   status("Requesting dWallet key generation...");
   const [dwalletCap] = await ikaTx.requestDWalletDKG({
@@ -332,9 +326,9 @@ export async function createDWallet({
     dwalletNetworkEncryptionKeyId: dWalletEncryptionKey.id,
     curve,
     ikaCoin: userIkaCoin,
-    suiCoin: userSuiCoin,
+    suiCoin: feeCoin,
   });
-
+  tx.transferObjects([feeCoin], senderAddress);
   // Register dWallet in on-chain registry with session_id and user_public_output
   const sessionIdU64Array = Array.from(sessionId).map((b) => BigInt(b));
   tx.moveCall({
@@ -632,8 +626,8 @@ export async function createPresign({
   );
 
   // 6. Split fee coin from gas and request global presign
-  const feeCoin = tx.splitCoins(tx.gas, [1_000_000]);
-
+  const feeCoin = tx.splitCoins(tx.gas, [100_000_000]);
+  // const fee_ika_coin = tx.splitCoins(feeCoin, [1_000_000]);
   status("Requesting presign...");
   const unverifiedPresignCap = ikaTx.requestGlobalPresign({
     curve,
@@ -645,8 +639,7 @@ export async function createPresign({
     dwalletNetworkEncryptionKeyId: dWalletEncryptionKey.id,
   });
 
-  tx.mergeCoins(tx.gas, [feeCoin]);
-
+  tx.transferObjects([feeCoin], senderAddress );
   // 7. Register presign ID on-chain in the WalletRegistry
   tx.moveCall({
     target: `${process.env.NEXT_PUBLIC_NEXUS_CONTRACT_ADDRESS}::nexus_wallet_management::add_presign_id`,
@@ -883,8 +876,8 @@ export async function signBytesWithDWallet({
   });
 
   const ikaCoin = tx.object(rawUserIkaCoins[0].coinObjectId);
-  const suiCoin = tx.object(rawUserSuiCoins[0].coinObjectId);
-
+  // const suiCoin = tx.object(rawUserSuiCoins[0].coinObjectId);
+  const feeCoin = tx.splitCoins(tx.gas, [100_000_000]);
   // Approve message
   const messageApproval = ikaTx.approveMessage({
     message: unsignedBytes,
@@ -919,11 +912,11 @@ export async function signBytesWithDWallet({
     message: unsignedBytes,
     signatureScheme: SignatureAlgorithm.ECDSASecp256k1,
     ikaCoin,
-    suiCoin,
+    suiCoin: feeCoin,
     publicOutput: publicOutputBytes,
     encryptedUserSecretKeyShare,
   });
-
+  tx.transferObjects([feeCoin], senderAddress);
   tx.setSender(senderAddress);
 
   // 8. Execute transaction
