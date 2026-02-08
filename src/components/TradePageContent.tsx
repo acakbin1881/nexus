@@ -1723,7 +1723,7 @@ export default function TradePageContent() {
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
-          <PositionsPanel />
+          <PositionsPanel evmAddress={sharedEvmAddress} />
         </div>
       </main>
     </div>
